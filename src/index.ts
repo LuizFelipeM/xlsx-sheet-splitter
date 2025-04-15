@@ -2,7 +2,33 @@ import express, { Request, Response } from 'express';
 import XLSX from 'xlsx';
 
 const app = express();
-app.use(express.raw({ type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', limit: '10mb' }));
+app.use((req: Request, res: Response, next) => {
+  const contentType = req.headers['content-type'];
+  const validTypes = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/vnd.ms-excel', // .xls
+    'application/vnd.oasis.opendocument.spreadsheet', // .ods
+    'application/x-vnd.oasis.opendocument.spreadsheet' // Alternative MIME for .ods
+  ];
+
+  if (req.method === 'POST' && !validTypes.includes(contentType || '')) {
+    return res.status(415).json({ 
+      error: 'Unsupported Media Type. Please upload a spreadsheet file (.xlsx, .xls, or .ods)' 
+    });
+  }
+  next();
+});
+
+app.use(express.raw({ 
+  type: [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'application/vnd.oasis.opendocument.spreadsheet',
+    'application/x-vnd.oasis.opendocument.spreadsheet'
+  ],
+  limit: '10mb'
+}));
+
 
 app.post('/', (req: Request, res: Response) => {
   try {
